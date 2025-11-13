@@ -1,0 +1,13 @@
+# 가상환경
+.venv/
+venv/
+
+# 업로드된 사진/영상
+assets/uploads/
+
+# 로컬 DB 파일
+data/petcare.db
+
+# 파이썬 캐시
+__pycache__/
+*.pyc
