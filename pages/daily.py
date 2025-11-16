@@ -2,13 +2,21 @@ import streamlit as st
 import pandas as pd
 from datetime import date
 from sqlalchemy import text
-from core.db import engine, init_db
+from core.db import engine
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 
-SESSION_KEY="auth_user"
+st.title("📆 반려동물 일일 기록")
+st.caption("몸무게, 사료량, 음수량, 활동량을 기록하고 적정 여부와 최근 몸무게 변화를 확인합니다.")
 
-init_db()
+#로그인 확인
+SESSION_KEY = "auth_user"
+user = st.session_state.get(SESSION_KEY)
+if not user:
+    st.warning("로그인이 필요합니다.")
+    st.page_link("pages/login.py",label="로그인 페이지로 이동")
+    st.stop()
+user_id = user["id"]
 
 #적정량 계산
 def calc_targets(species: str, current_weight_kg: float) -> dict:
@@ -27,7 +35,7 @@ def calc_targets(species: str, current_weight_kg: float) -> dict:
             "activity_min": 60.0,     
         }
 
-#적정 여부 판정 (±10% 허용구간)
+#적정 여부 판정(±허용구간 설정)
 def judge(value, target, tol_ratio_low=0.7, tol_ratio_high=1.3):
     if value is None or target is None or target <= 0:
         return "—"
@@ -37,15 +45,6 @@ def judge(value, target, tol_ratio_low=0.7, tol_ratio_high=1.3):
         return "⚠️ 과다 ⚠️"
     return "✅ 적정 ✅"
 
-st.title("📆 반려동물 일일 기록")
-st.caption("몸무게, 사료량, 음수량, 활동량을 기록하고 적정 여부와 최근 몸무게 변화를 확인합니다.")
-
-user = st.session_state.get(SESSION_KEY)
-if not user:
-    st.warning("로그인이 필요합니다.")
-    st.page_link("pages/login.py", label="로그인 페이지로 이동")
-    st.stop()
-user_id = user["id"]
 
 #펫 목록
 with engine.begin() as conn:
@@ -58,7 +57,6 @@ if not pets:
     st.info("등록된 반려동물이 없습니다. 먼저 프로필을 등록해 주세요.")
     st.stop()
 
-#이름으로 보여주되 내부적으로는 id 사용
 pet_map = {f"{p.name} ({p.species})": (p.id, p.species, p.weight) for p in pets}
 pet_label = st.selectbox("반려동물 선택", list(pet_map.keys()))
 pet_id, pet_species, pet_base_weight = pet_map[pet_label]
@@ -84,7 +82,7 @@ if submitted:
 
     food_j = judge(food_g, targets["food_g"])
     water_j = judge(water_ml, targets["water_ml"])
-    act_j   = judge(activity_min, targets["activity_min"], 0.9, 1.2)  # 활동은 상한을 좀 더 넓게
+    act_j   = judge(activity_min, targets["activity_min"], 0.9, 1.2) 
 
     st.info(
         (f"""사료량: **{food_j}** (권장 {targets['food_g']:.0f} g) |
@@ -107,10 +105,10 @@ if submitted:
               updated_at=CURRENT_TIMESTAMP
             """),
             {"uid": user_id, "pid": pet_id, "d": log_date.isoformat(),
-             "w": float(weight) if weight else None,
-             "f": float(food_g) if food_g else None,
-             "wm": float(water_ml) if water_ml else None,
-             "am": float(activity_min) if activity_min else None,
+             "w": float(weight),
+             "f": float(food_g),
+             "wm": float(water_ml),
+             "am": float(activity_min),
              "n": notes or None}
         )
     st.success(f"{pet_label} - {log_date.isoformat()} 기록 저장/업데이트 완료")
@@ -129,7 +127,7 @@ with engine.begin() as conn:
     ).fetchall()
 
 
-st.markdown("----------------")
+st.divider()
 st.subheader(" 📉 최근 몸무게 변화")
 df = pd.DataFrame(rows, columns=["date", "weight"])
 if not df.empty:
@@ -150,7 +148,7 @@ else:
 
 
 #전체데이터보기
-st.markdown("-------------------")
+st.divider()
 with engine.begin() as conn:
     all_rows = conn.execute(
         text("""

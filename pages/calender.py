@@ -1,11 +1,9 @@
-# pages/calendar.py
 import streamlit as st
 from sqlalchemy import text
 from datetime import date
 import calendar as cal
-from core.db import engine, init_db
+from core.db import engine
 
-init_db()
 
 st.title("⏰ 캘린더")
 
@@ -18,13 +16,13 @@ if not user:
     st.stop()
 user_id = user["id"]
 
-# 오늘/현재 월 상태
+#오늘 날짜 설정
 today = date.today()
 if "cal_year" not in st.session_state:
     st.session_state.cal_year, st.session_state.cal_month = today.year, today.month
 y, m = st.session_state.cal_year, st.session_state.cal_month
 
-# 월 이동
+#월 이동
 c1, c2, c3, c4 = st.columns([1,1,1,6])
 with c1:
     if st.button("◀ 이전달"):
@@ -37,7 +35,6 @@ with c1:
 with c2:
     if st.button("이번달"):
         st.session_state.cal_year, st.session_state.cal_month = today.year, today.month
-        st.session_state.selected_date = today
         st.rerun()
 with c3:
     if st.button("다음달 ▶"):
@@ -50,7 +47,7 @@ with c3:
 with c4:
     st.markdown(f"### {y}년 {m}월")
 
-# 이번 달 일정 불러오기
+#이번 달 일정 불러오기
 with engine.begin() as conn:
     events = conn.execute(
         text("""
@@ -90,23 +87,23 @@ for week in month_matrix:
         d_str = f"{y}-{m:02d}-{day_num:02d}"
         is_today = (d_str == today.strftime("%Y-%m-%d"))
 
-        # 날짜 숫자
+        #날짜 숫자
         if is_today:
             cell.markdown(f"<div style='font-weight:700;color:#2563eb'>{day_num}</div>", unsafe_allow_html=True)
         else:
             cell.markdown(f"**{day_num}**")
 
-        # 일정 미리보기 (각 셀)
+        #일정 미리보기
         for _, title in events_by_day.get(d_str, [])[:3]:
             short = title if len(title) <= 10 else title[:10] + "…"
             cell.markdown(f"{short}")
 
-# 선택한 날짜 섹션
-st.markdown("---")
+#일정 등록
+st.divider()
 st.subheader("✍️ 일정 등록 / 삭제")
 colL, colR = st.columns([2,3])
 
-# 날짜 선택 (여기서 등록/목록 관리)
+
 with colL:
     sel_date = st.date_input("날짜 선택", value=today)
     with st.form("add_event_form", clear_on_submit=True):
