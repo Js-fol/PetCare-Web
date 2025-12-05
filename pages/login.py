@@ -3,19 +3,15 @@ from sqlalchemy import text
 from core.auth import verify_login  
 
 st.title("로그인")
-
 #세션 키 
 SESSION_KEY = "auth_user"
 
 def is_authenticated() -> bool:
     return SESSION_KEY in st.session_state
-
 def set_user_session(user: dict):
     st.session_state[SESSION_KEY] = {"id": user["id"], "email": user["email"]}
-
 def clear_user_session():
     st.session_state.pop(SESSION_KEY, None)
-
 
 #이미 로그인 상태
 if is_authenticated():

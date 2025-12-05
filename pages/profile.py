@@ -4,7 +4,6 @@ from core.db import engine
 import datetime as dt
 
 st.title("🐾 반려동물 프로필 등록")
-
 #로그인 확인
 SESSION_KEY = "auth_user"
 user = st.session_state.get(SESSION_KEY)
